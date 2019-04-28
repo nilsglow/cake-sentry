@@ -8,13 +8,22 @@
  */
 class SentryErrorHandler extends ErrorHandler {
 
+    private static $client = null;
+
     protected static function sentryLog($exception) {
         if (Configure::read('debug')==0 || !Configure::read('Sentry.production_only')) {
             Raven_Autoloader::register();
             App::uses('CakeRavenClient', 'Sentry.Lib');
 
-            $client = new CakeRavenClient(Configure::read('Sentry.PHP.server'));
-            $client->captureException($exception, get_class($exception), 'PHP');
+            if (!static::$client) {
+                static::$client = new CakeRavenClient(Configure::read('Sentry.PHP.server'));
+
+                if (Configure::read('Sentry.deferred_sending')) {
+                    static::$client->store_errors_for_bulk_send = true;
+                    register_shutdown_function([static::$client, 'sendUnsentErrors']);
+                }
+            }
+            static::$client->captureException($exception, get_class($exception), 'PHP');
         }
     }
 
