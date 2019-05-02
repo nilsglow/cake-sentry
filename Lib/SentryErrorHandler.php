@@ -44,6 +44,11 @@ class SentryErrorHandler extends ErrorHandler {
     }
 
     public static function handleError($code, $description, $file = null, $line = null, $context = null) {
+		if (error_reporting() === 0) {
+			// no error_reporting, so we do not capture this one...
+			return false;
+		}
+
         try {
             $e = new ErrorException($description, 0, $code, $file, $line);
             self::sentryLog($e);
